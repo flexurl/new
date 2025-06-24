@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>URL Shortener</title>
+</head>
+<body>
+  <h2>🔗 URL Shortener</h2>
+  <form id="shortForm">
+    <input type="url" id="longUrl" placeholder="Paste long URL" required>
+    <input type="text" id="customCode" placeholder="Custom code (optional)">
+    <button type="submit">Shorten</button>
+  </form>
+  <p id="result"></p>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyHj8-mFwgE4KYz_UERHi8zte4A1nHwe2grFyibxyJQ4SFHHhILujn2VVRBJ4zeqmL39w/exec";
+
+    document.getElementById("shortForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const url = document.getElementById("longUrl").value;
+      const code = document.getElementById("customCode").value;
+      const api = `${SCRIPT_URL}?action=create&url=${encodeURIComponent(url)}&code=${encodeURIComponent(code)}`;
+      const res = await fetch(api);
+      const json = await res.json();
+      if (json.code) {
+        document.getElementById("result").innerHTML = `✅ Short URL: <a href="${SCRIPT_URL}?c=${json.code}" target="_blank">${SCRIPT_URL}?c=${json.code}</a>`;
+      } else {
+        document.getElementById("result").innerText = `Error: ${json.error}`;
+      }
+    });
+  </script>
+</body>
+</html>
