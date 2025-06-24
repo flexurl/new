@@ -1,33 +1,120 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>URL Shortener</title>
-</head>
-<body>
-  <h2>🔗 URL Shortener</h2>
-  <form id="shortForm">
-    <input type="url" id="longUrl" placeholder="Paste long URL" required>
-    <input type="text" id="customCode" placeholder="Custom code (optional)">
-    <button type="submit">Shorten</button>
-  </form>
-  <p id="result"></p>
+<style>
+  .shortener-form {
+    max-width: 500px;
+    margin: 40px auto;
+    padding: 25px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 0 12px rgba(0,0,0,0.08);
+    font-family: 'Segoe UI', sans-serif;
+  }
+  .shortener-form h2 {
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 22px;
+    color: #222;
+  }
+  .shortener-form input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+  }
+  .shortener-form button {
+    background-color: #28a745;
+    border: none;
+    color: white;
+    font-size: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 10px;
+  }
+  .shortener-form button:hover {
+    background-color: #218838;
+  }
+  .shortener-form .result {
+    margin-top: 15px;
+    text-align: center;
+    font-size: 16px;
+    word-break: break-word;
+  }
+</style>
 
-  <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyHj8-mFwgE4KYz_UERHi8zte4A1nHwe2grFyibxyJQ4SFHHhILujn2VVRBJ4zeqmL39w/exec";
+<div class="shortener-form">
+  <h2>🔗 Create Short Link</h2>
+  <input type="url" id="longUrl" placeholder="Enter full URL (e.g. https://example.com)" required>
+  <input type="text" id="customCode" placeholder="Custom code (optional)">
+  <button onclick="submitShortLink()">Create Short Link</button>
+  <div class="result" id="resultArea"></div>
+</div>
 
-    document.getElementById("shortForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const url = document.getElementById("longUrl").value;
-      const code = document.getElementById("customCode").value;
-      const api = `${SCRIPT_URL}?action=create&url=${encodeURIComponent(url)}&code=${encodeURIComponent(code)}`;
-      const res = await fetch(api);
-      const json = await res.json();
-      if (json.code) {
-        document.getElementById("result").innerHTML = `✅ Short URL: <a href="${SCRIPT_URL}?c=${json.code}" target="_blank">${SCRIPT_URL}?c=${json.code}</a>`;
-      } else {
-        document.getElementById("result").innerText = `Error: ${json.error}`;
+<script>
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyHj8-mFwgE4KYz_UERHi8zte4A1nHwe2grFyibxyJQ4SFHHhILujn2VVRBJ4zeqmL39w/exec";
+  const BLOG_URL = "https://flexurl.github.io/new/";
+
+  function submitShortLink() {
+    const longUrl = document.getElementById("longUrl").value.trim();
+    const customCode = document.getElementById("customCode").value.trim();
+    const resultArea = document.getElementById("resultArea");
+
+    resultArea.innerHTML = "⏳ Creating...";
+
+    if (!longUrl) {
+      resultArea.innerHTML = "<span style='color:red;'>❌ Please enter a valid URL.</span>";
+      return;
+    }
+
+    const fullUrl = `${SCRIPT_URL}?url=${encodeURIComponent(longUrl)}${customCode ? "&code=" + encodeURIComponent(customCode) : ""}`;
+
+    fetch(fullUrl)
+      .then(res => res.text())
+      .then(code => {
+        const shortLink = `${BLOG_URL}/?c=${code.split("=").pop()}`;
+        resultArea.innerHTML = `
+          ✅ Short link created: <br><a href="${shortLink}" target="_blank">${shortLink}</a><br>
+          <button onclick="navigator.clipboard.writeText('${shortLink}').then(()=>alert('Copied to clipboard'))">📋 Copy Link</button>
+        `;
+      })
+      .catch(err => {
+        resultArea.innerHTML = "<span style='color:red;'>⚠️ Failed to create short link. Check network or Apps Script permissions.</span>";
+        console.error(err);
+      });
+  }
+</script>
+
+<script>
+(function() {
+  const code = new URLSearchParams(window.location.search).get("c");
+  if (!code) return;
+
+  const sheetID = "1TcegubGHyme6A84HF7owRnLcQVFLXH-NjmNPvQJYytg"; // your sheet ID
+  const sheetName = "Sheet1";
+  const sheetURL = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
+
+  fetch(sheetURL)
+    .then(res => res.text())
+    .then(text => {
+      const json = JSON.parse(text.substr(47).slice(0, -2));
+      const rows = json.table.rows;
+
+      for (let row of rows) {
+        const codeCell = row.c[0]?.v;
+        const urlCell = row.c[1]?.v;
+        if (codeCell === code) {
+          window.location.href = urlCell;
+          return;
+        }
       }
+
+      document.body.innerHTML = "<h3>❌ Link not found.</h3>";
+    })
+    .catch(err => {
+      document.body.innerHTML = "<h3>⚠️ Error loading redirect.</h3>";
+      console.error(err);
     });
-  </script>
-</body>
-</html>
+})();
+</script>
